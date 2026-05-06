@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { icon: MessageSquare, label: 'StagAI Chat', path: '/', badge: null },
+  { icon: MessageSquare, label: 'AI Chat', path: '/', badge: null },
   { icon: BarChart3, label: 'Benchmark Dashboard', path: '/benchmark', badge: 'Research' },
   { icon: Database, label: 'Data Pipeline', path: '/pipeline', badge: null },
   { icon: Search, label: 'Document Explorer', path: '/documents', badge: null },
@@ -33,10 +33,10 @@ export default function Sidebar() {
           </div>
           <div>
             <h1 className="font-display text-lg font-bold" style={{ color: 'hsl(var(--stag-gold))' }}>
-              StagAI
+              NexaMind
             </h1>
             <p className="text-xs" style={{ color: 'hsl(var(--sidebar-foreground))', opacity: 0.6 }}>
-              Fairfield University
+              Web-to-RAG Intelligence
             </p>
           </div>
         </div>
@@ -103,7 +103,7 @@ export default function Sidebar() {
         <div className="flex items-center gap-2">
           <Globe className="w-3.5 h-3.5" style={{ color: 'hsl(var(--sidebar-foreground))', opacity: 0.5 }} />
           <p className="text-xs" style={{ color: 'hsl(var(--sidebar-foreground))', opacity: 0.5 }}>
-            fairfield.edu
+            nexamind.ai
           </p>
         </div>
       </div>
