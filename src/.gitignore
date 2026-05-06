@@ -1,0 +1,94 @@
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Node modules & Package managers
+node_modules/
+npm-debug.log
+npm-error.log
+yarn-error.log
+pnpm-debug.log
+pnpm-error.log
+lerna-debug.log
+.pnpm-store/
+
+# Vite build output
+dist/
+dist-ssr/
+*.local
+.vite/
+
+# Deno
+deno.lock
+.deno_cache/
+target/
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Database & Cache
+*.db
+*.sqlite
+*.sqlite3
+.cache/
+*.cache
+
+# Docker (optional, if you're not committing compose files)
+.dockerignore
+
+# OS
+.DS_Store
+.env.*.swp
+.env.*.swo
+
+# Testing
+coverage/
+.nyc_output/
+
+# Build artifacts
+build/
+out/
+
+# Local development
+.eslintcache
+.parcel-cache
+.angular/
+.cache
+.vuepress/dist
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+.vscode-test
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Private files
+secrets.json
+credentials.json
+
+# Generated files (if applicable)
+openapi-spec.json

@@ -6,9 +6,8 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { icon: Zap, label: 'RAG Benchmark', path: '/full-benchmark', badge: '⭐ Start' },
-  { icon: MessageSquare, label: 'Crawlect Chat', path: '/', badge: null },
-  { icon: BarChart3, label: 'Benchmark Dashboard', path: '/benchmark', badge: 'Research' },
+  { icon: MessageSquare, label: 'Crawlect Chat', path: '/', badge: '⭐ Start' },
+  { icon: Zap, label: 'E2E Benchmark', path: '/benchmark', badge: 'Research' },
   { icon: Database, label: 'Data Pipeline', path: '/pipeline', badge: null },
   { icon: Search, label: 'Document Explorer', path: '/documents', badge: null },
   { icon: GitBranch, label: 'GitHub Tracker', path: '/github', badge: null },

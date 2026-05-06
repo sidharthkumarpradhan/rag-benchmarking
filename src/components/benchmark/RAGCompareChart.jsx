@@ -12,15 +12,16 @@ const RAG_COLORS = {
 
 export function LatencyChart({ data }) {
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+    <ResponsiveContainer width="100%" height={280}>
+      <BarChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 50 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
         <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-        <YAxis tick={{ fontSize: 12 }} unit="ms" />
-        <Tooltip formatter={(v) => [`${v}ms`, 'Avg Latency']} />
+        <YAxis tick={{ fontSize: 12 }} label={{ value: 'Avg Latency (ms)', angle: -90, position: 'insideLeft' }} />
+        <Tooltip formatter={(v) => [`${v}ms`, 'Latency']} />
+        <Legend wrapperStyle={{ paddingTop: '20px' }} />
         <Bar dataKey="vector" name="Vector RAG" fill={RAG_COLORS.vector} radius={[4, 4, 0, 0]} />
-        <Bar dataKey="vectorless" name="Vectorless" fill={RAG_COLORS.vectorless} radius={[4, 4, 0, 0]} />
-        <Bar dataKey="graph_vector" name="Graph Vector" fill={RAG_COLORS.graph_vector} radius={[4, 4, 0, 0]} />
+        <Bar dataKey="vectorless" name="PageIndex RAG" fill={RAG_COLORS.vectorless} radius={[4, 4, 0, 0]} />
+        <Bar dataKey="graph_vector" name="Graph+Vector RAG" fill={RAG_COLORS.graph_vector} radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

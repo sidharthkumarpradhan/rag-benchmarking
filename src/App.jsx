@@ -14,7 +14,6 @@ import Pipeline from '@/pages/Pipeline';
 import Documents from '@/pages/Documents';
 import Settings from '@/pages/Settings';
 import GitHubTracker from '@/pages/GitHubTracker';
-import FullBenchmark from '@/pages/FullBenchmark';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -50,7 +49,6 @@ const AuthenticatedApp = () => {
         <Route path="/documents" element={<Documents />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/github" element={<GitHubTracker />} />
-        <Route path="/full-benchmark" element={<FullBenchmark />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

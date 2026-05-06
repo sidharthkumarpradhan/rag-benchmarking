@@ -24,8 +24,8 @@ import { format } from 'date-fns';
 
 const RAG_STYLES = {
   vector: { label: 'Vector RAG', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-500' },
-  vectorless: { label: 'Vectorless', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500' },
-  graph_vector: { label: 'Graph Vector', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-500' },
+  vectorless: { label: 'PageIndex RAG', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+  graph_vector: { label: 'Graph+Vector RAG', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-500' },
 };
 
 const STATUS_STYLES = {
@@ -422,8 +422,8 @@ export default function Benchmark() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="vector">Vector RAG</SelectItem>
-                        <SelectItem value="vectorless">Vectorless</SelectItem>
-                        <SelectItem value="graph_vector">Graph Vector</SelectItem>
+                        <SelectItem value="vectorless">PageIndex RAG</SelectItem>
+                        <SelectItem value="graph_vector">Graph+Vector RAG</SelectItem>
                       </SelectContent>
                     </Select>
                     <Button
