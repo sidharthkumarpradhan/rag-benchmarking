@@ -17,7 +17,56 @@ const DEFAULT_TEST_QUERIES = [
   { text: "What graduate programs are available at Fairfield University?", category: "academic", reference: "Fairfield University offers graduate programs in business (MBA), education, engineering, nursing, and social work among others." },
 ];
 
-async function llmJudge(query, context, response, reference, apiKey, model) {
+async function callLLM(messages, hfToken, maxTokens = 200) {
+  // 1. HuggingFace (primary)
+  try {
+    const res = await fetch('https://router.huggingface.co/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${hfToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'meta-llama/Meta-Llama-3.1-8B-Instruct', messages, max_tokens: maxTokens })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const text = data.choices?.[0]?.message?.content || '';
+      if (text) return text;
+    }
+  } catch (_) {}
+
+  // 2. OpenRouter fallback
+  const openrouterKey = Deno.env.get('LLM_API_KEY');
+  if (openrouterKey) {
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${openrouterKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'meta-llama/llama-3.1-8b-instruct:free', messages, max_tokens: maxTokens, temperature: 0 })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.choices?.[0]?.message?.content || '';
+        if (text) return text;
+      }
+    } catch (_) {}
+  }
+
+  // 3. Fireworks fallback
+  const fireworksKey = Deno.env.get('FIREWORKS_API_KEY');
+  if (fireworksKey) {
+    const res = await fetch('https://api.fireworks.ai/inference/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${fireworksKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'accounts/fireworks/models/llama-v3p1-8b-instruct', messages, max_tokens: maxTokens, temperature: 0 })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.choices?.[0]?.message?.content || '';
+    }
+  }
+
+  return null;
+}
+
+async function llmJudge(query, context, response, reference, hfToken) {
   const prompt = `You are an expert RAG system evaluator. Score the following RAG response on 4 metrics (0-10 scale each).
 
 QUERY: ${query}
@@ -36,24 +85,11 @@ Evaluate and return ONLY a JSON object with these exact keys:
 Return ONLY valid JSON, no explanation.`;
 
   try {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: model || 'meta-llama/llama-3.1-8b-instruct:free',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 200,
-        temperature: 0
-      })
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content || '';
-    // Extract JSON from response
+    const content = await callLLM([{ role: 'user', content: prompt }], hfToken, 200);
+    if (!content) return null;
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
     const scores = JSON.parse(jsonMatch[0]);
-    // Validate all keys present and in range
     const keys = ['context_relevance', 'utilization', 'faithfulness', 'completeness'];
     for (const k of keys) {
       if (typeof scores[k] !== 'number') return null;
@@ -82,8 +118,8 @@ Deno.serve(async (req) => {
 
     if (!test_run_id) return Response.json({ error: 'test_run_id required' }, { status: 400 });
 
-    const LLM_API_KEY = Deno.env.get('LLM_API_KEY');
-    if (!LLM_API_KEY) return Response.json({ error: 'LLM_API_KEY not configured' }, { status: 500 });
+    // HuggingFace token (primary LLM provider via OAuth — no extra key needed)
+    const { accessToken: hfToken } = await base44.asServiceRole.connectors.getConnection('hugging_face');
 
     // Mark test run as running
     await base44.asServiceRole.entities.TestRun.update(test_run_id, {
@@ -123,7 +159,7 @@ Deno.serve(async (req) => {
           let scores = null;
           if (use_llm_judge) {
             const contextForJudge = sources?.map(s => s.text || s.title || s.url).join('\n') || context_text || '';
-            scores = await llmJudge(q.text, contextForJudge, response, q.reference, LLM_API_KEY, 'meta-llama/llama-3.1-8b-instruct:free');
+            scores = await llmJudge(q.text, contextForJudge, response, q.reference, hfToken);
           }
 
           // Save benchmark record with TRACe scores

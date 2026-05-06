@@ -31,19 +31,56 @@ async function vectorSearch(queryEmbedding, limit = 6) {
   return data.result || [];
 }
 
-async function generateLLMResponse(prompt, model, apiKey) {
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: model || 'meta-llama/llama-3.1-8b-instruct:free',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 512
-    })
-  });
-  if (!res.ok) throw new Error(`LLM call failed: ${await res.text()}`);
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content || '';
+async function generateLLMResponse(prompt, model, hfToken) {
+  const hfModel = model || 'meta-llama/Meta-Llama-3.1-8B-Instruct';
+  const messages = [{ role: 'user', content: prompt }];
+
+  // 1. Try HuggingFace Inference API (primary — uses OAuth, no extra key needed)
+  try {
+    const res = await fetch('https://router.huggingface.co/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${hfToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: hfModel, messages, max_tokens: 512 })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const text = data.choices?.[0]?.message?.content || '';
+      if (text) return text;
+    }
+  } catch (_) {}
+
+  // 2. Fallback: OpenRouter
+  const openrouterKey = Deno.env.get('LLM_API_KEY');
+  if (openrouterKey) {
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${openrouterKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'meta-llama/llama-3.1-8b-instruct:free', messages, max_tokens: 512 })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.choices?.[0]?.message?.content || '';
+        if (text) return text;
+      }
+    } catch (_) {}
+  }
+
+  // 3. Fallback: Fireworks AI
+  const fireworksKey = Deno.env.get('FIREWORKS_API_KEY');
+  if (fireworksKey) {
+    const res = await fetch('https://api.fireworks.ai/inference/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${fireworksKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'accounts/fireworks/models/llama-v3p1-8b-instruct', messages, max_tokens: 512 })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.choices?.[0]?.message?.content || '';
+    }
+  }
+
+  throw new Error('All LLM providers failed. Configure LLM_API_KEY (OpenRouter) or FIREWORKS_API_KEY as fallback.');
 }
 
 async function vectorRAG(query, hfToken, llmApiKey, model) {
@@ -186,18 +223,16 @@ Deno.serve(async (req) => {
 
     if (!query) return Response.json({ error: 'query is required' }, { status: 400 });
 
-    // Get HuggingFace token via OAuth connector
+    // Get HuggingFace token via OAuth connector (used for embeddings AND LLM inference)
     const { accessToken: hfToken } = await base44.asServiceRole.connectors.getConnection('hugging_face');
-    const LLM_API_KEY = Deno.env.get('LLM_API_KEY');
-    if (!LLM_API_KEY) return Response.json({ error: 'LLM_API_KEY not configured' }, { status: 500 });
 
     let result;
     if (rag_type === 'vector') {
-      result = await vectorRAG(query, hfToken, LLM_API_KEY, model);
+      result = await vectorRAG(query, hfToken, hfToken, model);
     } else if (rag_type === 'vectorless') {
-      result = await vectorlessRAG(query, base44, LLM_API_KEY, model);
+      result = await vectorlessRAG(query, base44, hfToken, model);
     } else if (rag_type === 'graph_vector') {
-      result = await graphVectorRAG(query, hfToken, LLM_API_KEY, model, base44);
+      result = await graphVectorRAG(query, hfToken, hfToken, model, base44);
     } else {
       return Response.json({ error: 'Invalid rag_type' }, { status: 400 });
     }
