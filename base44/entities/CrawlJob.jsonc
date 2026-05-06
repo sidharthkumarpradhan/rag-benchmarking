@@ -1,0 +1,70 @@
+{
+  "name": "CrawlJob",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Job name / label"
+    },
+    "urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Seed URLs to crawl"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "running",
+        "completed",
+        "failed"
+      ],
+      "default": "pending"
+    },
+    "crawl_type": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "scheduled"
+      ],
+      "default": "manual"
+    },
+    "pages_crawled": {
+      "type": "number",
+      "default": 0
+    },
+    "pages_total": {
+      "type": "number",
+      "default": 0
+    },
+    "error_message": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "schedule_cron": {
+      "type": "string",
+      "description": "Cron expression for scheduled jobs"
+    },
+    "max_depth": {
+      "type": "number",
+      "default": 3
+    },
+    "max_pages": {
+      "type": "number",
+      "default": 500
+    }
+  },
+  "required": [
+    "name",
+    "urls"
+  ]
+}

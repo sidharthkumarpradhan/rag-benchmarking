@@ -1,0 +1,72 @@
+{
+  "name": "CrawledDocument",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string",
+      "description": "Raw extracted text content"
+    },
+    "content_hash": {
+      "type": "string"
+    },
+    "source_domain": {
+      "type": "string"
+    },
+    "crawl_job_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "raw",
+        "processed",
+        "indexed",
+        "failed"
+      ],
+      "default": "raw"
+    },
+    "vector_indexed": {
+      "type": "boolean",
+      "default": false
+    },
+    "graph_indexed": {
+      "type": "boolean",
+      "default": false
+    },
+    "vectorless_indexed": {
+      "type": "boolean",
+      "default": false
+    },
+    "chunk_count": {
+      "type": "number",
+      "default": 0
+    },
+    "word_count": {
+      "type": "number",
+      "default": 0
+    },
+    "page_type": {
+      "type": "string",
+      "enum": [
+        "general",
+        "course",
+        "faculty",
+        "policy",
+        "it_kb",
+        "catalog",
+        "news",
+        "event"
+      ],
+      "default": "general"
+    }
+  },
+  "required": [
+    "url"
+  ]
+}

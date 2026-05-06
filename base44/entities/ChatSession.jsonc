@@ -1,0 +1,39 @@
+{
+  "name": "ChatSession",
+  "type": "object",
+  "properties": {
+    "session_name": {
+      "type": "string"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "rag_mode": {
+      "type": "string",
+      "enum": [
+        "vector",
+        "vectorless",
+        "graph_vector",
+        "auto"
+      ],
+      "default": "auto"
+    },
+    "model": {
+      "type": "string",
+      "default": "llama-3.1-8b"
+    },
+    "message_count": {
+      "type": "number",
+      "default": 0
+    },
+    "last_message_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "total_tokens": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": []
+}
