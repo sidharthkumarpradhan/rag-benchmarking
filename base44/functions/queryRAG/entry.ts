@@ -7,20 +7,39 @@ const QDRANT_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIiw
 const COLLECTION_NAME = 'fairfield_docs';
 
 async function getEmbedding(text, hfToken) {
-  const res = await fetch(
-    'https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2',
-    {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${hfToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ inputs: text, options: { wait_for_model: true } })
+  // 1. Try HuggingFace (primary)
+  try {
+    const res = await fetch(
+      'https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2',
+      {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${hfToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inputs: text, options: { wait_for_model: true } })
+      }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      return Array.isArray(data[0]) ? data[0] : data;
     }
-  );
-  if (!res.ok) {
+  } catch (_) {}
+
+  // 2. Fallback: Fireworks embeddings (same model — vectors are compatible with Qdrant index)
+  const fireworksKey = Deno.env.get('FIREWORKS_API_KEY');
+  if (fireworksKey) {
+    const res = await fetch('https://api.fireworks.ai/inference/v1/embeddings', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${fireworksKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input: text, model: 'BAAI/bge-small-en-v1.5' })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.data?.[0]?.embedding;
+    }
     const errBody = await res.text();
-    throw new Error(`Embedding failed (${res.status}): ${errBody.substring(0, 300)}`);
+    throw new Error(`Fireworks embedding failed (${res.status}): ${errBody.substring(0, 300)}`);
   }
-  const data = await res.json();
-  return Array.isArray(data[0]) ? data[0] : data;
+
+  throw new Error('No embedding provider available. HF credits depleted and FIREWORKS_API_KEY not set.');
 }
 
 async function vectorSearch(queryEmbedding, limit = 6) {
