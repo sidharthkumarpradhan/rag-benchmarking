@@ -11,12 +11,12 @@ import RAGSelector from '@/components/chat/RAGSelector';
 import { cn } from '@/lib/utils';
 
 const SUGGESTED_QUESTIONS = [
-  "What products or services do you offer?",
-  "How do I get started?",
-  "What are the main features?",
-  "How can I contact support?",
-  "What are your pricing plans?",
-  "Where can I find documentation?",
+  "What topics does this knowledge base cover?",
+  "Summarize the most important information available.",
+  "What are the key services or features described?",
+  "How can I get support or find help?",
+  "What recent updates or news are available?",
+  "Give me an overview of the content indexed.",
 ];
 
 const MODELS = [
@@ -121,8 +121,8 @@ export default function Chat() {
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="font-display text-xl font-bold text-foreground">NexaMind</h1>
-            <p className="text-xs text-muted-foreground">Instant AI answers from any website</p>
+            <h1 className="font-display text-xl font-bold text-foreground">Crawlect AI</h1>
+            <p className="text-xs text-muted-foreground">Your intelligent RAG assistant — powered by your web data</p>
           </div>
         </div>
 
@@ -171,10 +171,10 @@ export default function Chat() {
               <Sparkles className="w-10 h-10 text-white" />
             </div>
             <h2 className="font-display text-2xl font-bold text-foreground mb-2">
-              Welcome to NexaMind
+              Welcome to Crawlect AI
             </h2>
             <p className="text-muted-foreground max-w-md mb-8 text-sm leading-relaxed">
-              Your AI assistant powered by any website's knowledge — crawl any site, index it instantly, and get precise answers in seconds.
+              Ask anything about your indexed knowledge base. Crawlect turns any website into an intelligent RAG-powered assistant.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-xl">
               {SUGGESTED_QUESTIONS.map(q => (
@@ -227,7 +227,7 @@ export default function Chat() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask anything about your indexed website..."
+              placeholder="Ask anything about your knowledge base..."
               className="flex-1 resize-none border-0 shadow-none focus-visible:ring-0 bg-transparent min-h-[40px] max-h-32 text-sm p-0"
               rows={1}
             />
@@ -240,7 +240,7 @@ export default function Chat() {
             </Button>
           </div>
           <p className="text-xs text-center text-muted-foreground mt-2">
-            NexaMind uses AI and may make mistakes. Always verify critical information from official sources.
+            Crawlect AI uses AI and may make mistakes. Always verify critical information from the original source.
           </p>
         </div>
       </div>

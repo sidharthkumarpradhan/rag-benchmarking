@@ -24,7 +24,7 @@ import AMPMessageFlow from '@/components/pipeline/AMPMessageFlow';
 import SharedStatePanel from '@/components/pipeline/SharedStatePanel';
 import FinalReportCard from '@/components/pipeline/FinalReportCard';
 
-const FAIRFIELD_URLS = [
+const DEFAULT_URLS = [
   'https://www.example.com',
 ];
 
@@ -44,9 +44,9 @@ const PIPELINE_TABS = [
 export default function Pipeline() {
   const [activeTab, setActiveTab] = useState('orchestrator');
   const [selectedSession, setSelectedSession] = useState(null);
-  const [demoGoal, setDemoGoal] = useState('Run a full demo of the NexaMind multi-agent pipeline to verify all RAG architectures work correctly for the indexed website.');
+  const [demoGoal, setDemoGoal] = useState('Run a full demo of the Crawlect AI multi-agent pipeline to verify all RAG architectures work correctly on the indexed knowledge base.');
   const [crawlOpen, setCrawlOpen] = useState(false);
-  const [newJob, setNewJob] = useState({ name: 'Fairfield University Full Crawl', urls: FAIRFIELD_URLS, max_depth: 2, max_pages: 100 });
+  const [newJob, setNewJob] = useState({ name: 'New Crawl Job', urls: DEFAULT_URLS, max_depth: 2, max_pages: 100 });
   const [urlInput, setUrlInput] = useState('');
   const qc = useQueryClient();
 
@@ -92,6 +92,7 @@ export default function Pipeline() {
       return base44.functions.invoke('runMultiAgentPipeline', {
         session_id: session.id,
         goal: demoGoal,
+
       });
     },
     onSuccess: () => {
@@ -153,10 +154,10 @@ export default function Pipeline() {
           <div>
             <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
               <Cpu className="w-6 h-6 text-primary" />
-              NexaMind Pipeline
+              Multi-Agent Pipeline
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Crawl any website → index to RAG → multi-agent intelligence
+              Crawl any website → index → query with multi-agent RAG orchestration
             </p>
           </div>
           <div className="flex gap-2">
