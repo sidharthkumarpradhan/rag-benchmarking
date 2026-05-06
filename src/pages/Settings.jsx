@@ -66,7 +66,7 @@ const SECTIONS = [
     icon: Globe,
     color: 'text-rose-600',
     bg: 'bg-rose-50 border-rose-200',
-    desc: 'Agent 1 uses Firecrawl to crawl any website URL you configure in the Data Pipeline.',
+    desc: 'Agent 1 uses Firecrawl to crawl any website you configure — just provide seed URLs in the Data Pipeline.',
     status: 'needs_key',
     envKey: 'FIRECRAWL_API_KEY',
     fields: [
@@ -123,7 +123,7 @@ export default function Settings() {
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">Settings & Configuration</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Configure API keys and services for all three RAG architectures. Set secrets in the{' '}
+            Configure API keys and services for all three RAG architectures. Crawlect AI works with any website — just add your seed URLs in the Data Pipeline. Set secrets in the{' '}
             <strong>Base44 Dashboard → Settings → Environment Variables</strong>.
           </p>
         </div>
