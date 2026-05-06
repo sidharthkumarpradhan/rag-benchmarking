@@ -162,8 +162,14 @@ Deno.serve(async (req) => {
           const chunk = chunks[i];
           if (index_targets.includes('vector')) {
             const embedding = await getEmbedding(chunk, hfToken);
+            // Qdrant requires UUID or integer IDs — derive a deterministic UUID from doc.id + chunk index
+            const idBytes = new TextEncoder().encode(`${doc.id}_${i}`);
+            const hashBuf = await crypto.subtle.digest('SHA-1', idBytes);
+            const hashArr = Array.from(new Uint8Array(hashBuf));
+            const hex = hashArr.map(b => b.toString(16).padStart(2, '0')).join('');
+            const pointUUID = `${hex.slice(0,8)}-${hex.slice(8,12)}-4${hex.slice(13,16)}-${hex.slice(16,20)}-${hex.slice(20,32)}`;
             qdrantPoints.push({
-              id: `${doc.id}_${i}`,
+              id: pointUUID,
               vector: embedding,
               payload: {
                 doc_id: doc.id,
