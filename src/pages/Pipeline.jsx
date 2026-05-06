@@ -455,7 +455,7 @@ export default function Pipeline() {
                     <p className="text-xs text-muted-foreground">Pages crawled</p>
                   </div>
                   <div className="bg-muted/40 rounded-xl p-3">
-                    <p className="text-xl font-bold text-blue-600">{e2eResult.indexed}</p>
+                    <p className="text-xl font-bold text-blue-600">{e2eResult.indexed_chunks ?? e2eResult.indexed ?? 0}</p>
                     <p className="text-xs text-muted-foreground">Chunks indexed</p>
                   </div>
                   <div className="bg-muted/40 rounded-xl p-3">
