@@ -1,0 +1,43 @@
+{
+  "name": "ChatMessage",
+  "type": "object",
+  "properties": {
+    "session_id": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "assistant"
+      ],
+      "default": "user"
+    },
+    "content": {
+      "type": "string"
+    },
+    "rag_type_used": {
+      "type": "string"
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "latency_ms": {
+      "type": "number"
+    },
+    "tokens_used": {
+      "type": "number"
+    },
+    "model": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "role",
+    "content"
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "name": "QueryBenchmark",
+  "type": "object",
+  "properties": {
+    "query_text": {
+      "type": "string"
+    },
+    "query_category": {
+      "type": "string",
+      "enum": [
+        "academic",
+        "it_support",
+        "campus_life",
+        "admissions",
+        "financial",
+        "faculty",
+        "events",
+        "general"
+      ],
+      "default": "general"
+    },
+    "rag_type": {
+      "type": "string",
+      "enum": [
+        "vector",
+        "vectorless",
+        "graph_vector"
+      ],
+      "description": "Which RAG architecture was used"
+    },
+    "response_text": {
+      "type": "string"
+    },
+    "sources_cited": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "latency_ms": {
+      "type": "number"
+    },
+    "tokens_used": {
+      "type": "number"
+    },
+    "relevance_score": {
+      "type": "number",
+      "description": "0-10 score"
+    },
+    "faithfulness_score": {
+      "type": "number",
+      "description": "0-10 score"
+    },
+    "completeness_score": {
+      "type": "number",
+      "description": "0-10 score"
+    },
+    "human_rating": {
+      "type": "number",
+      "description": "1-5 stars from researcher"
+    },
+    "human_notes": {
+      "type": "string"
+    },
+    "model_used": {
+      "type": "string"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "test_run_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "query_text",
+    "rag_type"
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "name": "TestRun",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "running",
+        "completed",
+        "failed"
+      ],
+      "default": "pending"
+    },
+    "rag_types_tested": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Which RAG types are included"
+    },
+    "query_count": {
+      "type": "number",
+      "default": 0
+    },
+    "model_used": {
+      "type": "string",
+      "default": "llama-3.1-8b"
+    },
+    "avg_latency_vector": {
+      "type": "number"
+    },
+    "avg_latency_vectorless": {
+      "type": "number"
+    },
+    "avg_latency_graph": {
+      "type": "number"
+    },
+    "avg_relevance_vector": {
+      "type": "number"
+    },
+    "avg_relevance_vectorless": {
+      "type": "number"
+    },
+    "avg_relevance_graph": {
+      "type": "number"
+    },
+    "winner": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
