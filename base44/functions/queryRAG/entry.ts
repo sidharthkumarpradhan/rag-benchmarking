@@ -148,34 +148,141 @@ Answer:`;
   };
 }
 
-async function vectorlessRAG(query, base44, llmApiKey, model) {
+// ── PageIndex helpers (mirroring VectifyAI/PageIndex open-source algorithm) ──
+function buildPageIndex(title, htmlContent) {
+  const text = htmlContent
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '');
+
+  const headingRe = /<h([1-4])[^>]*>([\s\S]*?)<\/h\1>/gi;
+  const nodes = [];
+  let match;
+  while ((match = headingRe.exec(text)) !== null) {
+    const headingText = match[2].replace(/<[^>]+>/g, '').trim();
+    if (headingText.length < 3) continue;
+    nodes.push({ level: parseInt(match[1]), title: headingText, pos: match.index });
+  }
+
+  for (let i = 0; i < nodes.length; i++) {
+    const start = nodes[i].pos;
+    const end = i + 1 < nodes.length ? nodes[i + 1].pos : text.length;
+    const segment = text.slice(start, end).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    nodes[i].text = segment.substring(0, 1200);
+    nodes[i].node_id = String(i + 1).padStart(4, '0');
+  }
+
+  if (nodes.length === 0) {
+    const plainText = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    return [{ node_id: '0001', title: title || 'Document', text: plainText.substring(0, 2000), nodes: [] }];
+  }
+
+  const stack = [];
+  const roots = [];
+  for (const node of nodes) {
+    const treeNode = { node_id: node.node_id, title: node.title, text: node.text, nodes: [] };
+    while (stack.length && stack[stack.length - 1].level >= node.level) stack.pop();
+    if (!stack.length) {
+      roots.push({ ...treeNode, level: node.level });
+      stack.push({ level: node.level, treeNode: roots[roots.length - 1] });
+    } else {
+      const parent = stack[stack.length - 1].treeNode;
+      parent.nodes.push({ ...treeNode, level: node.level });
+      stack.push({ level: node.level, treeNode: parent.nodes[parent.nodes.length - 1] });
+    }
+  }
+
+  function cleanTree(nodeList) {
+    return nodeList.map(n => {
+      const c = { node_id: n.node_id, title: n.title, text: n.text };
+      if (n.nodes && n.nodes.length) c.nodes = cleanTree(n.nodes);
+      return c;
+    });
+  }
+  return cleanTree(roots);
+}
+
+function flattenTree(tree) {
+  const result = [];
+  function traverse(nodes) {
+    for (const n of nodes) {
+      result.push({ node_id: n.node_id, title: n.title, text: n.text || '' });
+      if (n.nodes) traverse(n.nodes);
+    }
+  }
+  traverse(tree);
+  return result;
+}
+
+function treeTOC(tree, indent = 0) {
+  return tree.map(n => {
+    const line = `${'  '.repeat(indent)}[${n.node_id}] ${n.title}`;
+    return n.nodes && n.nodes.length ? line + '\n' + treeTOC(n.nodes, indent + 1) : line;
+  }).join('\n');
+}
+
+async function pageIndexRetrieve(query, pageIndexTree, flatNodes, llmApiKey, hfToken, model) {
+  // Step 1: LLM reasons over the TOC to select relevant node IDs
+  const toc = treeTOC(pageIndexTree);
+  const selectPrompt = `You are a precise document retrieval system using the PageIndex method.
+Given this document tree (Table of Contents) and a user query, identify the 3-5 most relevant node IDs.
+
+DOCUMENT TREE:
+${toc}
+
+QUERY: ${query}
+
+Reply ONLY with a JSON array of node_ids. Example: ["0001","0003","0007"]
+JSON only:`;
+
+  const selectionText = await generateLLMResponse(selectPrompt, model, llmApiKey);
+  let selectedIds = [];
+  try {
+    const m = selectionText.match(/\[[\s\S]*?\]/);
+    if (m) selectedIds = JSON.parse(m[0]).map(id => String(id).padStart(4, '0'));
+  } catch (_) {}
+
+  if (!selectedIds.length) {
+    const qWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    selectedIds = flatNodes
+      .map(n => ({ id: n.node_id, score: qWords.reduce((s, w) => s + (n.title.toLowerCase().includes(w) ? 2 : 0) + ((n.text || '').toLowerCase().includes(w) ? 1 : 0), 0) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 4)
+      .map(n => n.id);
+  }
+
+  return selectedIds.map(id => flatNodes.find(n => n.node_id === id)).filter(Boolean);
+}
+
+async function vectorlessRAG(query, base44, llmApiKey, hfToken, model) {
   const startTime = Date.now();
-  const docs = await base44.asServiceRole.entities.CrawledDocument.list('-updated_date', 200);
-  const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+  const docs = await base44.asServiceRole.entities.CrawledDocument.list('-updated_date', 100);
 
-  const scored = docs
-    .filter(d => d.content)
-    .map(doc => {
-      const text = (doc.title + ' ' + doc.content).toLowerCase();
-      let score = 0;
-      for (const word of queryWords) {
-        const matches = (text.match(new RegExp(word, 'g')) || []).length;
-        score += matches / (text.length / 1000 + 1);
+  const contextParts = [];
+  const sources = [];
+
+  for (const doc of docs.filter(d => d.content)) {
+    // Build PageIndex tree on-the-fly from stored content
+    // Use a markdown-style parse if no HTML available: treat the content as plain text with simple sections
+    const fakeHtml = `<h2>${doc.title || 'Document'}</h2>\n` + doc.content;
+    const tree = buildPageIndex(doc.title || '', fakeHtml);
+    const flatNodes = flattenTree(tree);
+
+    const selectedNodes = await pageIndexRetrieve(query, tree, flatNodes, llmApiKey, hfToken, model);
+    for (const node of selectedNodes) {
+      if (node.text && node.text.trim().length > 50) {
+        contextParts.push(`[${doc.title || doc.url} › ${node.title}]\n${node.text.substring(0, 700)}`);
+        sources.push({ url: doc.url, title: doc.title, score: 1, text: node.text.substring(0, 300) });
       }
-      return { doc, score };
-    })
-    .filter(s => s.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+    }
+    if (contextParts.length >= 6) break; // cap at 6 context sections
+  }
 
-  const context = scored.map((s, i) =>
-    `[Source ${i + 1}: ${s.doc.title || s.doc.url}]\n${s.doc.content?.substring(0, 800)}`
-  ).join('\n\n---\n\n');
+  const context = contextParts.join('\n\n---\n\n');
 
-  const prompt = `You are the Fairfield University StagAI assistant. Answer the question based ONLY on the provided context. Be concise and accurate.
+  const prompt = `You are the Fairfield University StagAI assistant. Using the PageIndex reasoning-based retrieval below (structured document sections), answer the question accurately and cite the source sections.
 
-Context:
-${context}
+Context (PageIndex retrieved sections):
+${context || 'No relevant sections found.'}
 
 Question: ${query}
 
@@ -185,9 +292,10 @@ Answer:`;
   return {
     response,
     context_text: context,
-    sources: scored.map(s => ({ url: s.doc.url, title: s.doc.title, score: s.score, text: s.doc.content?.substring(0, 400) })),
+    sources,
     latency_ms: Date.now() - startTime,
-    tokens_used: Math.ceil((prompt.length + response.length) / 4)
+    tokens_used: Math.ceil((prompt.length + response.length) / 4),
+    retrieval_method: 'pageindex'
   };
 }
 
@@ -267,7 +375,7 @@ Deno.serve(async (req) => {
     if (rag_type === 'vector') {
       result = await vectorRAG(query, hfToken, hfToken, model);
     } else if (rag_type === 'vectorless') {
-      result = await vectorlessRAG(query, base44, hfToken, model);
+      result = await vectorlessRAG(query, base44, hfToken, hfToken, model);
     } else if (rag_type === 'graph_vector') {
       result = await graphVectorRAG(query, hfToken, hfToken, model, base44);
     } else {
