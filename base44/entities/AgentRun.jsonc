@@ -1,0 +1,80 @@
+{
+  "name": "AgentRun",
+  "type": "object",
+  "properties": {
+    "pipeline_id": {
+      "type": "string",
+      "description": "Parent pipeline session ID"
+    },
+    "agent_name": {
+      "type": "string",
+      "description": "e.g. Orchestrator, Crawler, Indexer, RAG, Judge"
+    },
+    "agent_role": {
+      "type": "string",
+      "enum": [
+        "orchestrator",
+        "crawler",
+        "indexer",
+        "rag_query",
+        "llm_judge",
+        "reporter"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "running",
+        "completed",
+        "failed",
+        "waiting_for_agent"
+      ],
+      "default": "pending"
+    },
+    "input_message": {
+      "type": "object",
+      "description": "AMP message received by this agent"
+    },
+    "output_message": {
+      "type": "object",
+      "description": "AMP message sent by this agent"
+    },
+    "reasoning": {
+      "type": "string",
+      "description": "Agent's internal reasoning / chain of thought"
+    },
+    "tool_calls": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Tools the agent invoked"
+    },
+    "tokens_used": {
+      "type": "number"
+    },
+    "latency_ms": {
+      "type": "number"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "error": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "pipeline_id",
+    "agent_name",
+    "agent_role"
+  ]
+}

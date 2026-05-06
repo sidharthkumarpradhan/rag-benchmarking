@@ -1,0 +1,76 @@
+{
+  "name": "PipelineSession",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "pipeline_type": {
+      "type": "string",
+      "enum": [
+        "demo_run",
+        "crawl_index",
+        "rag_benchmark",
+        "full_pipeline"
+      ],
+      "default": "demo_run"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "running",
+        "completed",
+        "failed"
+      ],
+      "default": "pending"
+    },
+    "current_agent": {
+      "type": "string"
+    },
+    "agents_completed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "shared_state": {
+      "type": "object",
+      "description": "Shared memory across all agents in this session"
+    },
+    "final_output": {
+      "type": "object"
+    },
+    "total_agents": {
+      "type": "number",
+      "default": 0
+    },
+    "completed_agents": {
+      "type": "number",
+      "default": 0
+    },
+    "total_tokens": {
+      "type": "number",
+      "default": 0
+    },
+    "total_latency_ms": {
+      "type": "number",
+      "default": 0
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "error": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "pipeline_type"
+  ]
+}
