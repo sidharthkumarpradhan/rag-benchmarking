@@ -1,17 +1,17 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-// RAG Query Engine — handles Vector, Vectorless, and Graph Vector queries
+// RAG Query Engine — uses HuggingFace connector for embeddings
 
 const QDRANT_URL = 'https://b14ca50b-03f6-488b-b732-df87fdc22880.us-west-1-0.aws.cloud.qdrant.io:6333';
 const QDRANT_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIiwic3ViamVjdCI6ImFwaS1rZXk6NjMyNTlhNjktNmI1OS00NmZkLWIwZjAtNjAzYzk4NDA3YjExIn0.0jCAkhCn1Hz2TPdbQvfkE0tBfT6J3V1AJfUsszL6VyU';
 const COLLECTION_NAME = 'fairfield_docs';
 
-async function getEmbedding(text, hfApiKey) {
+async function getEmbedding(text, hfToken) {
   const res = await fetch(
-    'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2',
+    'https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2',
     {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${hfApiKey}`, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': `Bearer ${hfToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ inputs: text, options: { wait_for_model: true } })
     }
   );
@@ -20,61 +20,35 @@ async function getEmbedding(text, hfApiKey) {
   return Array.isArray(data[0]) ? data[0] : data;
 }
 
-async function vectorSearch(queryEmbedding, limit = 5) {
+async function vectorSearch(queryEmbedding, limit = 6) {
   const res = await fetch(`${QDRANT_URL}/collections/${COLLECTION_NAME}/points/search`, {
     method: 'POST',
     headers: { 'api-key': QDRANT_API_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      vector: queryEmbedding,
-      limit,
-      with_payload: true
-    })
+    body: JSON.stringify({ vector: queryEmbedding, limit, with_payload: true })
   });
   if (!res.ok) return [];
   const data = await res.json();
   return data.result || [];
 }
 
-async function generateLLMResponse(prompt, model, apiKey, provider) {
-  let url, headers, body;
-
-  if (provider === 'huggingface') {
-    url = `https://api-inference.huggingface.co/models/${model}`;
-    headers = { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
-    body = JSON.stringify({ inputs: prompt, parameters: { max_new_tokens: 512, temperature: 0.3 } });
-  } else if (provider === 'openrouter') {
-    url = 'https://openrouter.ai/api/v1/chat/completions';
-    headers = { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
-    body = JSON.stringify({
+async function generateLLMResponse(prompt, model, apiKey) {
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
       model: model || 'meta-llama/llama-3.1-8b-instruct:free',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 512
-    });
-  } else {
-    // Fireworks fallback
-    url = 'https://api.fireworks.ai/inference/v1/chat/completions';
-    headers = { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
-    body = JSON.stringify({
-      model: model || 'accounts/fireworks/models/llama-v3p1-8b-instruct',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 512
-    });
-  }
-
-  const res = await fetch(url, { method: 'POST', headers, body });
+    })
+  });
   if (!res.ok) throw new Error(`LLM call failed: ${await res.text()}`);
   const data = await res.json();
-
-  if (provider === 'huggingface') {
-    return data[0]?.generated_text?.replace(prompt, '').trim() || data[0]?.generated_text || '';
-  }
-  return data.choices?.[0]?.message?.content || data.choices?.[0]?.text || '';
+  return data.choices?.[0]?.message?.content || '';
 }
 
-// VECTOR RAG: embed query → search Qdrant → LLM generate
-async function vectorRAG(query, hfApiKey, llmApiKey, llmModel, llmProvider) {
+async function vectorRAG(query, hfToken, llmApiKey, model) {
   const startTime = Date.now();
-  const queryEmbedding = await getEmbedding(query, hfApiKey);
+  const queryEmbedding = await getEmbedding(query, hfToken);
   const results = await vectorSearch(queryEmbedding, 6);
 
   const context = results.map((r, i) =>
@@ -90,26 +64,20 @@ Question: ${query}
 
 Answer:`;
 
-  const response = await generateLLMResponse(prompt, llmModel, llmApiKey, llmProvider);
-  const latency = Date.now() - startTime;
-
+  const response = await generateLLMResponse(prompt, model, llmApiKey);
   return {
     response,
     sources: results.map(r => ({ url: r.payload.url, title: r.payload.title, score: r.score })),
-    latency_ms: latency,
+    latency_ms: Date.now() - startTime,
     tokens_used: Math.ceil((prompt.length + response.length) / 4)
   };
 }
 
-// VECTORLESS RAG: keyword/BM25-style + LLM
-async function vectorlessRAG(query, base44, llmApiKey, llmModel, llmProvider) {
+async function vectorlessRAG(query, base44, llmApiKey, model) {
   const startTime = Date.now();
-
-  // Fetch all documents and do simple keyword matching (PageIndex-style)
   const docs = await base44.asServiceRole.entities.CrawledDocument.list('-updated_date', 200);
   const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 3);
 
-  // Score documents by keyword frequency (BM25-like)
   const scored = docs
     .filter(d => d.content)
     .map(doc => {
@@ -117,7 +85,7 @@ async function vectorlessRAG(query, base44, llmApiKey, llmModel, llmProvider) {
       let score = 0;
       for (const word of queryWords) {
         const matches = (text.match(new RegExp(word, 'g')) || []).length;
-        score += matches / (text.length / 1000 + 1); // TF normalization
+        score += matches / (text.length / 1000 + 1);
       }
       return { doc, score };
     })
@@ -138,36 +106,28 @@ Question: ${query}
 
 Answer:`;
 
-  const response = await generateLLMResponse(prompt, llmModel, llmApiKey, llmProvider);
-  const latency = Date.now() - startTime;
-
+  const response = await generateLLMResponse(prompt, model, llmApiKey);
   return {
     response,
     sources: scored.map(s => ({ url: s.doc.url, title: s.doc.title, score: s.score })),
-    latency_ms: latency,
+    latency_ms: Date.now() - startTime,
     tokens_used: Math.ceil((prompt.length + response.length) / 4)
   };
 }
 
-// GRAPH VECTOR RAG: hybrid vector + graph traversal (FalkorDB)
-async function graphVectorRAG(query, hfApiKey, llmApiKey, llmModel, llmProvider, base44) {
+async function graphVectorRAG(query, hfToken, llmApiKey, model, base44) {
   const startTime = Date.now();
-
-  // Step 1: Vector search for anchor nodes
-  const queryEmbedding = await getEmbedding(query, hfApiKey);
+  const queryEmbedding = await getEmbedding(query, hfToken);
   const vectorResults = await vectorSearch(queryEmbedding, 3);
 
-  // Step 2: Use FalkorDB for graph traversal (if configured)
   const FALKORDB_URL = Deno.env.get('FALKORDB_URL');
   let graphContext = '';
 
   if (FALKORDB_URL) {
-    // Query FalkorDB for related nodes
-    const graphQuery = `MATCH (d:Document)-[:RELATED_TO*1..2]->(related:Document)
-      WHERE d.url IN [${vectorResults.map(r => `'${r.payload.url}'`).join(',')}]
-      RETURN related.title, related.content, related.url LIMIT 10`;
-
     try {
+      const graphQuery = `MATCH (d:Document)-[:RELATED_TO*1..2]->(related:Document)
+        WHERE d.url IN [${vectorResults.map(r => `'${r.payload.url}'`).join(',')}]
+        RETURN related.title, related.content, related.url LIMIT 10`;
       const graphRes = await fetch(`${FALKORDB_URL}/graph/fairfield/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -179,10 +139,9 @@ async function graphVectorRAG(query, hfApiKey, llmApiKey, llmModel, llmProvider,
           .map(r => `[Related: ${r['related.title']}]\n${r['related.content']?.substring(0, 400)}`)
           .join('\n\n');
       }
-    } catch {}
+    } catch (_) {}
   }
 
-  // Combine vector + graph context
   const vectorContext = vectorResults.map((r, i) =>
     `[Vector Source ${i + 1}: ${r.payload.title || r.payload.url}]\n${r.payload.text}`
   ).join('\n\n---\n\n');
@@ -198,13 +157,11 @@ Question: ${query}
 
 Answer:`;
 
-  const response = await generateLLMResponse(prompt, llmModel, llmApiKey, llmProvider);
-  const latency = Date.now() - startTime;
-
+  const response = await generateLLMResponse(prompt, model, llmApiKey);
   return {
     response,
     sources: vectorResults.map(r => ({ url: r.payload.url, title: r.payload.title, score: r.score })),
-    latency_ms: latency,
+    latency_ms: Date.now() - startTime,
     tokens_used: Math.ceil((prompt.length + response.length) / 4)
   };
 }
@@ -219,7 +176,6 @@ Deno.serve(async (req) => {
       query,
       rag_type = 'vector',
       model = 'meta-llama/llama-3.1-8b-instruct:free',
-      provider = 'openrouter',
       session_id,
       save_benchmark = false,
       test_run_id,
@@ -228,24 +184,22 @@ Deno.serve(async (req) => {
 
     if (!query) return Response.json({ error: 'query is required' }, { status: 400 });
 
-    const HF_API_KEY = Deno.env.get('HF_API_KEY');
+    // Get HuggingFace token via OAuth connector
+    const { accessToken: hfToken } = await base44.asServiceRole.connectors.getConnection('hugging_face');
     const LLM_API_KEY = Deno.env.get('LLM_API_KEY');
-
-    if (!HF_API_KEY) return Response.json({ error: 'HF_API_KEY not configured' }, { status: 500 });
     if (!LLM_API_KEY) return Response.json({ error: 'LLM_API_KEY not configured' }, { status: 500 });
 
     let result;
     if (rag_type === 'vector') {
-      result = await vectorRAG(query, HF_API_KEY, LLM_API_KEY, model, provider);
+      result = await vectorRAG(query, hfToken, LLM_API_KEY, model);
     } else if (rag_type === 'vectorless') {
-      result = await vectorlessRAG(query, base44, LLM_API_KEY, model, provider);
+      result = await vectorlessRAG(query, base44, LLM_API_KEY, model);
     } else if (rag_type === 'graph_vector') {
-      result = await graphVectorRAG(query, HF_API_KEY, LLM_API_KEY, model, provider, base44);
+      result = await graphVectorRAG(query, hfToken, LLM_API_KEY, model, base44);
     } else {
       return Response.json({ error: 'Invalid rag_type' }, { status: 400 });
     }
 
-    // Save to benchmark if requested
     if (save_benchmark) {
       await base44.asServiceRole.entities.QueryBenchmark.create({
         query_text: query,
@@ -261,7 +215,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Save chat message if session provided
     if (session_id) {
       await base44.asServiceRole.entities.ChatMessage.create({
         session_id,
@@ -274,7 +227,6 @@ Deno.serve(async (req) => {
         model
       });
 
-      // Update session stats
       const sessions = await base44.asServiceRole.entities.ChatSession.list();
       const session = sessions.find(s => s.id === session_id);
       if (session) {
