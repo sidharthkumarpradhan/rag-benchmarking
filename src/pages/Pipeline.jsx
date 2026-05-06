@@ -25,9 +25,7 @@ import SharedStatePanel from '@/components/pipeline/SharedStatePanel';
 import FinalReportCard from '@/components/pipeline/FinalReportCard';
 
 const FAIRFIELD_URLS = [
-  'https://www.fairfield.edu',
-  'https://catalog.fairfield.edu',
-  'https://fairfield-university.atlassian.net/wiki/spaces/ITSKB/overview',
+  'https://www.example.com',
 ];
 
 const STATUS_CONFIG = {
@@ -46,7 +44,7 @@ const PIPELINE_TABS = [
 export default function Pipeline() {
   const [activeTab, setActiveTab] = useState('orchestrator');
   const [selectedSession, setSelectedSession] = useState(null);
-  const [demoGoal, setDemoGoal] = useState('Run a full demo of the StagAI multi-agent pipeline to verify all RAG architectures work correctly for Fairfield University.');
+  const [demoGoal, setDemoGoal] = useState('Run a full demo of the NexaMind multi-agent pipeline to verify all RAG architectures work correctly for the indexed website.');
   const [crawlOpen, setCrawlOpen] = useState(false);
   const [newJob, setNewJob] = useState({ name: 'Fairfield University Full Crawl', urls: FAIRFIELD_URLS, max_depth: 2, max_pages: 100 });
   const [urlInput, setUrlInput] = useState('');
@@ -155,10 +153,10 @@ export default function Pipeline() {
           <div>
             <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
               <Cpu className="w-6 h-6 text-primary" />
-              Multi-Agent Pipeline
+              NexaMind Pipeline
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              AMP-style agent orchestration — persistent shared state, full audit trail
+              Crawl any website → index to RAG → multi-agent intelligence
             </p>
           </div>
           <div className="flex gap-2">

@@ -11,12 +11,12 @@ import RAGSelector from '@/components/chat/RAGSelector';
 import { cn } from '@/lib/utils';
 
 const SUGGESTED_QUESTIONS = [
-  "What are the admission requirements?",
-  "How do I reset my Stags ID password?",
-  "What undergraduate programs are available?",
-  "How do I apply for financial aid?",
-  "What are the library hours?",
-  "Where is the Dolan School of Business?",
+  "What products or services do you offer?",
+  "How do I get started?",
+  "What are the main features?",
+  "How can I contact support?",
+  "What are your pricing plans?",
+  "Where can I find documentation?",
 ];
 
 const MODELS = [
@@ -121,8 +121,8 @@ export default function Chat() {
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="font-display text-xl font-bold text-foreground">StagAI</h1>
-            <p className="text-xs text-muted-foreground">Fairfield University One-Stop Assistant</p>
+            <h1 className="font-display text-xl font-bold text-foreground">NexaMind</h1>
+            <p className="text-xs text-muted-foreground">Instant AI answers from any website</p>
           </div>
         </div>
 
@@ -171,10 +171,10 @@ export default function Chat() {
               <Sparkles className="w-10 h-10 text-white" />
             </div>
             <h2 className="font-display text-2xl font-bold text-foreground mb-2">
-              Welcome to StagAI
+              Welcome to NexaMind
             </h2>
             <p className="text-muted-foreground max-w-md mb-8 text-sm leading-relaxed">
-              Your one-stop assistant for everything Fairfield University — academics, IT support, campus life, admissions, and more.
+              Your AI assistant powered by any website's knowledge — crawl any site, index it instantly, and get precise answers in seconds.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-xl">
               {SUGGESTED_QUESTIONS.map(q => (
@@ -227,7 +227,7 @@ export default function Chat() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask anything about Fairfield University..."
+              placeholder="Ask anything about your indexed website..."
               className="flex-1 resize-none border-0 shadow-none focus-visible:ring-0 bg-transparent min-h-[40px] max-h-32 text-sm p-0"
               rows={1}
             />
@@ -240,7 +240,7 @@ export default function Chat() {
             </Button>
           </div>
           <p className="text-xs text-center text-muted-foreground mt-2">
-            StagAI uses AI and may make mistakes. Verify important information on official Fairfield pages.
+            NexaMind uses AI and may make mistakes. Always verify critical information from official sources.
           </p>
         </div>
       </div>

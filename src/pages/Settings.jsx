@@ -66,7 +66,7 @@ const SECTIONS = [
     icon: Globe,
     color: 'text-rose-600',
     bg: 'bg-rose-50 border-rose-200',
-    desc: 'Agent 1 uses Firecrawl to crawl fairfield.edu, catalog.fairfield.edu, and the IT Knowledge Base.',
+    desc: 'Agent 1 uses Firecrawl to crawl any website URL you configure in the Data Pipeline.',
     status: 'needs_key',
     envKey: 'FIRECRAWL_API_KEY',
     fields: [
