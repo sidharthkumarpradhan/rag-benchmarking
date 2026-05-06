@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 
 const navItems = [
+  { icon: Zap, label: 'E2E Demo', path: '/demo', badge: '⭐ Start Here' },
   { icon: MessageSquare, label: 'Crawlect Chat', path: '/', badge: null },
   { icon: BarChart3, label: 'Benchmark Dashboard', path: '/benchmark', badge: 'Research' },
   { icon: Database, label: 'Data Pipeline', path: '/pipeline', badge: null },
