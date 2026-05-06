@@ -32,21 +32,40 @@ async function ensureQdrantCollection() {
 }
 
 async function getEmbedding(text, hfToken) {
-  // Use HuggingFace connector via router.huggingface.co
-  const res = await fetch(
-    'https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2',
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${hfToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ inputs: text, options: { wait_for_model: true } })
+  // 1. Try HuggingFace first
+  try {
+    const res = await fetch(
+      'https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2',
+      {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${hfToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inputs: text, options: { wait_for_model: true } })
+      }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (!data.error) return Array.isArray(data[0]) ? data[0] : data;
     }
-  );
-  if (!res.ok) throw new Error(`HuggingFace embedding failed: ${await res.text()}`);
-  const data = await res.json();
-  return Array.isArray(data[0]) ? data[0] : data;
+  } catch (_) {}
+
+  // 2. Fallback: Fireworks AI embeddings (BAAI/bge-small-en-v1.5, dim=384 — compatible with Qdrant index)
+  const fireworksKey = Deno.env.get('FIREWORKS_API_KEY');
+  if (fireworksKey) {
+    const res = await fetch('https://api.fireworks.ai/inference/v1/embeddings', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${fireworksKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input: text, model: 'BAAI/bge-small-en-v1.5' })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const embedding = data.data?.[0]?.embedding;
+      if (embedding) return embedding;
+    }
+    const errText = await res.text();
+    throw new Error(`Fireworks embedding failed: ${errText.substring(0, 200)}`);
+  }
+
+  throw new Error('No embedding provider available. HF credits depleted and FIREWORKS_API_KEY not set.');
 }
 
 async function upsertToQdrant(points) {

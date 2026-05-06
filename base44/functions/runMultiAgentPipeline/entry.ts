@@ -89,25 +89,39 @@ async function llmCall(messages, maxTokens = 400) {
       headers: { 'Authorization': `Bearer ${fwKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: 'accounts/fireworks/models/llama-v3p1-8b-instruct', messages, max_tokens: maxTokens })
     });
+    const body = await res.text();
     if (res.ok) {
-      const d = await res.json();
+      const d = JSON.parse(body);
       const text = d.choices?.[0]?.message?.content || '';
       if (text) return { text, tokens: d.usage?.total_tokens || Math.ceil(text.length / 4) };
+      console.error('[llmCall] Fireworks ok but empty response:', body.substring(0, 300));
+    } else {
+      console.error(`[llmCall] Fireworks error ${res.status}:`, body.substring(0, 300));
     }
   }
   const openrouterKey = Deno.env.get('LLM_API_KEY');
   if (openrouterKey) {
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${openrouterKey}`, 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${openrouterKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://nexamind.base44.app',
+        'X-Title': 'NexaMind'
+      },
       body: JSON.stringify({ model: 'meta-llama/llama-3.1-8b-instruct:free', messages, max_tokens: maxTokens })
     });
+    const body = await res.text();
     if (res.ok) {
-      const d = await res.json();
+      const d = JSON.parse(body);
       const text = d.choices?.[0]?.message?.content || '';
       if (text) return { text, tokens: d.usage?.total_tokens || Math.ceil(text.length / 4) };
+      console.error('[llmCall] OpenRouter ok but empty response:', body.substring(0, 300));
+    } else {
+      console.error(`[llmCall] OpenRouter error ${res.status}:`, body.substring(0, 300));
     }
   }
+  console.error('[llmCall] All providers failed or returned empty. fwKey set:', !!fwKey, '| orKey set:', !!openrouterKey);
   return { text: '', tokens: 0 };
 }
 
@@ -365,7 +379,7 @@ async function ragQueryAgent(base44, sessionId, correlationId) {
       const hits = await qdrantSearch(embedding, 4);
       const context = hits.map((h, i) => `[Source ${i+1}: ${h.payload?.title || h.payload?.url || 'Unknown'}]\n${h.payload?.text || ''}`).join('\n\n');
 
-      const prompt = `You are StagAI, Fairfield University's AI assistant. Answer based ONLY on context.\n\nContext:\n${context}\n\nQuestion: ${query}\nAnswer:`;
+      const prompt = `You are an intelligent assistant. Answer the question based ONLY on the provided context. Be concise and accurate.\n\nContext:\n${context}\n\nQuestion: ${query}\nAnswer:`;
       const { text: response, tokens } = await llmCall([{ role: 'user', content: prompt }], 300);
       totalTokens += tokens;
 
@@ -397,9 +411,9 @@ async function ragQueryAgent(base44, sessionId, correlationId) {
         `[Source ${i+1}: ${s.doc.title || s.doc.url}]\n${(s.doc.content || '').substring(0, 600)}`
       ).join('\n\n');
 
-      const fallbackContext = context || `Fairfield University is a Jesuit university in Fairfield, Connecticut. It offers undergraduate and graduate programs across multiple schools including the Dolan School of Business, College of Arts and Sciences, School of Engineering, School of Nursing, and School of Education.`;
+      const fallbackContext = context || `This is a general knowledge query. No specific documents have been indexed yet. Answer based on general knowledge.`;
 
-      const prompt = `You are StagAI, Fairfield University's AI assistant. Answer based on context.\n\nContext:\n${fallbackContext}\n\nQuestion: ${query}\nAnswer:`;
+      const prompt = `You are an intelligent assistant. Answer the question based on the context below. If no context is available, answer from general knowledge.\n\nContext:\n${fallbackContext}\n\nQuestion: ${query}\nAnswer:`;
       const { text: response, tokens } = await llmCall([{ role: 'user', content: prompt }], 300);
       totalTokens += tokens;
 
