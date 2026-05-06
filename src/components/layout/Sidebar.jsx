@@ -17,7 +17,7 @@ const navItems = [
 
 const ragTypes = [
   { label: 'Vector RAG', color: 'bg-blue-400', desc: 'Qdrant + Embeddings' },
-  { label: 'Vectorless', color: 'bg-emerald-400', desc: 'PageIndex BM25' },
+  { label: 'PageIndex RAG', color: 'bg-emerald-400', desc: 'Tree index + LLM reasoning' },
   { label: 'Graph Vector', color: 'bg-purple-400', desc: 'FalkorDB + Qdrant' },
 ];
 
