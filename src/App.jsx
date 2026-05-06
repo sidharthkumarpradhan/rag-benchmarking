@@ -13,6 +13,7 @@ import Benchmark from '@/pages/Benchmark';
 import Pipeline from '@/pages/Pipeline';
 import Documents from '@/pages/Documents';
 import Settings from '@/pages/Settings';
+import GitHubTracker from '@/pages/GitHubTracker';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -47,6 +48,7 @@ const AuthenticatedApp = () => {
         <Route path="/pipeline" element={<Pipeline />} />
         <Route path="/documents" element={<Documents />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/github" element={<GitHubTracker />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
   MessageSquare, BarChart3, Database, Search,
-  Settings, Home, Zap, Globe, ChevronRight, Bot
+  Settings, Home, Zap, Globe, ChevronRight, Bot, GitBranch
 } from 'lucide-react';
 
 const navItems = [
@@ -10,6 +10,7 @@ const navItems = [
   { icon: BarChart3, label: 'Benchmark Dashboard', path: '/benchmark', badge: 'Research' },
   { icon: Database, label: 'Data Pipeline', path: '/pipeline', badge: null },
   { icon: Search, label: 'Document Explorer', path: '/documents', badge: null },
+  { icon: GitBranch, label: 'GitHub Tracker', path: '/github', badge: null },
   { icon: Settings, label: 'Settings', path: '/settings', badge: null },
 ];
 
