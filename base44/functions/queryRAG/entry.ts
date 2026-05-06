@@ -15,7 +15,10 @@ async function getEmbedding(text, hfToken) {
       body: JSON.stringify({ inputs: text, options: { wait_for_model: true } })
     }
   );
-  if (!res.ok) throw new Error('Embedding failed');
+  if (!res.ok) {
+    const errBody = await res.text();
+    throw new Error(`Embedding failed (${res.status}): ${errBody.substring(0, 300)}`);
+  }
   const data = await res.json();
   return Array.isArray(data[0]) ? data[0] : data;
 }
@@ -32,8 +35,10 @@ async function vectorSearch(queryEmbedding, limit = 6) {
 }
 
 async function generateLLMResponse(prompt, model, hfToken) {
-  const hfModel = model || 'meta-llama/Meta-Llama-3.1-8B-Instruct';
+  const hfModel = 'meta-llama/Llama-3.1-8B-Instruct';
   const messages = [{ role: 'user', content: prompt }];
+
+  let hfError = 'not tried', orError = 'not tried', fwError = 'not tried';
 
   // 1. Try HuggingFace Inference API (primary — uses OAuth, no extra key needed)
   try {
@@ -42,12 +47,16 @@ async function generateLLMResponse(prompt, model, hfToken) {
       headers: { 'Authorization': `Bearer ${hfToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: hfModel, messages, max_tokens: 512 })
     });
+    const hfBody = await res.text();
     if (res.ok) {
-      const data = await res.json();
+      const data = JSON.parse(hfBody);
       const text = data.choices?.[0]?.message?.content || '';
       if (text) return text;
+      hfError = 'empty response';
+    } else {
+      hfError = `${res.status}: ${hfBody.substring(0, 200)}`;
     }
-  } catch (_) {}
+  } catch (e) { hfError = e.message; }
 
   // 2. Fallback: OpenRouter
   const openrouterKey = Deno.env.get('LLM_API_KEY');
@@ -56,31 +65,40 @@ async function generateLLMResponse(prompt, model, hfToken) {
       const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${openrouterKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'meta-llama/llama-3.1-8b-instruct:free', messages, max_tokens: 512 })
+        body: JSON.stringify({ model: 'meta-llama/llama-3.1-8b-instruct', messages, max_tokens: 512 })
       });
+      const orBody = await res.text();
       if (res.ok) {
-        const data = await res.json();
+        const data = JSON.parse(orBody);
         const text = data.choices?.[0]?.message?.content || '';
         if (text) return text;
+        orError = 'empty response';
+      } else {
+        orError = `${res.status}: ${orBody.substring(0, 200)}`;
       }
-    } catch (_) {}
-  }
+    } catch (e) { orError = e.message; }
+  } else { orError = 'LLM_API_KEY not set'; }
 
   // 3. Fallback: Fireworks AI
   const fireworksKey = Deno.env.get('FIREWORKS_API_KEY');
   if (fireworksKey) {
-    const res = await fetch('https://api.fireworks.ai/inference/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${fireworksKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'accounts/fireworks/models/llama-v3p1-8b-instruct', messages, max_tokens: 512 })
-    });
-    if (res.ok) {
-      const data = await res.json();
-      return data.choices?.[0]?.message?.content || '';
-    }
-  }
+    try {
+      const res = await fetch('https://api.fireworks.ai/inference/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${fireworksKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'accounts/fireworks/models/llama-v3p1-8b-instruct', messages, max_tokens: 512 })
+      });
+      const fwBody = await res.text();
+      if (res.ok) {
+        const data = JSON.parse(fwBody);
+        return data.choices?.[0]?.message?.content || '';
+      } else {
+        fwError = `${res.status}: ${fwBody.substring(0, 200)}`;
+      }
+    } catch (e) { fwError = e.message; }
+  } else { fwError = 'FIREWORKS_API_KEY not set'; }
 
-  throw new Error('All LLM providers failed. Configure LLM_API_KEY (OpenRouter) or FIREWORKS_API_KEY as fallback.');
+  throw new Error(`All LLM providers failed. HF: ${hfError} | OpenRouter: ${orError} | Fireworks: ${fwError}`);
 }
 
 async function vectorRAG(query, hfToken, llmApiKey, model) {

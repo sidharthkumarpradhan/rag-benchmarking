@@ -23,7 +23,7 @@ async function callLLM(messages, hfToken, maxTokens = 200) {
     const res = await fetch('https://router.huggingface.co/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${hfToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'meta-llama/Meta-Llama-3.1-8B-Instruct', messages, max_tokens: maxTokens })
+      body: JSON.stringify({ model: 'meta-llama/Llama-3.1-8B-Instruct', messages, max_tokens: maxTokens })
     });
     if (res.ok) {
       const data = await res.json();
@@ -39,7 +39,7 @@ async function callLLM(messages, hfToken, maxTokens = 200) {
       const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${openrouterKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'meta-llama/llama-3.1-8b-instruct:free', messages, max_tokens: maxTokens, temperature: 0 })
+        body: JSON.stringify({ model: 'meta-llama/llama-3.1-8b-instruct', messages, max_tokens: maxTokens, temperature: 0 })
       });
       if (res.ok) {
         const data = await res.json();
