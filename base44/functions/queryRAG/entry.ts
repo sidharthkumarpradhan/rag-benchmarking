@@ -67,7 +67,8 @@ Answer:`;
   const response = await generateLLMResponse(prompt, model, llmApiKey);
   return {
     response,
-    sources: results.map(r => ({ url: r.payload.url, title: r.payload.title, score: r.score })),
+    context_text: context,
+    sources: results.map(r => ({ url: r.payload.url, title: r.payload.title, score: r.score, text: r.payload.text })),
     latency_ms: Date.now() - startTime,
     tokens_used: Math.ceil((prompt.length + response.length) / 4)
   };
@@ -109,7 +110,8 @@ Answer:`;
   const response = await generateLLMResponse(prompt, model, llmApiKey);
   return {
     response,
-    sources: scored.map(s => ({ url: s.doc.url, title: s.doc.title, score: s.score })),
+    context_text: context,
+    sources: scored.map(s => ({ url: s.doc.url, title: s.doc.title, score: s.score, text: s.doc.content?.substring(0, 400) })),
     latency_ms: Date.now() - startTime,
     tokens_used: Math.ceil((prompt.length + response.length) / 4)
   };
