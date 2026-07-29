@@ -1,0 +1,6 @@
+{
+  "type": "hugging_face",
+  "scopes": [
+    "inference-api"
+  ]
+}
